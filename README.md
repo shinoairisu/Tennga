@@ -53,6 +53,8 @@ def callback(req :requests,param :dict) -> object:
 }
 ```
 
+除了blocks以外，其他文件的源只有name和url是必须的。
+
 文件存储在:
 
 srcf/内容1/文件1/文件内容.txt
