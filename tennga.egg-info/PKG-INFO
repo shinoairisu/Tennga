@@ -1,3 +1,22 @@
+Metadata-Version: 2.1
+Name: tennga
+Version: 1.0.0
+Summary: 一个实现简易,使用简易的源管理器
+Home-page: https://github.com/shinoairisu/tennga
+Author: 肥希的肥猫
+Author-email: 281001460@qq.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: MacOS
+Classifier: Operating System :: Microsoft
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: Unix
+Requires-Python: >=3
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
 # Tennga
  一个简单的源管理器
 
@@ -65,3 +84,4 @@ blocks是一个特殊的文件夹，用于存储block。实际上是tar文件。
 block的文件后缀为xx.bk。直接存储于block下面。
 
 blocks文件夹也在srcf下面。
+
