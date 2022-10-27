@@ -154,16 +154,19 @@ def __download(filedic,folder,blocks=None,dcallback=None) -> str:
     texts=""
     for i in links:
         link = i.strip()
-        if link[0:4] == "http":
+        if link[0:4] == "http": #如果是http链接就直接下载
             _, filename = os.path.split(i)
             try:
                 res = requests.get(link)
-                if cont.status_code != 200:
+                if res.status_code != 200:
                     texts+=f"{filename},failed\n"
                     continue
             except:
-                if os.path.exists(f"srcf/{folder}/{filedic['name']}/{filename}"):
+                if os.path.exists(f"srcf/{folder}/{filedic['name']}/{filename}"):#如果下载出错就查看本地有没有
                     texts+=f"{filename},ok\n"
+                    continue
+                else:
+                    texts+=f"{filename},failed\n"
                     continue
             cont = res.content
             if dcallback:
@@ -186,7 +189,7 @@ def __download(filedic,folder,blocks=None,dcallback=None) -> str:
 def __blockReader(blockurl,blocks) -> "bytes,str":
     blockfile = __getmidstring(blockurl,"//","/")
     _, filename = os.path.split(blockurl)
-    if not os.path.exists(f"srcf/blocks/{blockfile}.block"):
+    if not os.path.exists(f"srcf/blocks/{blockfile}.block"): #不存在就下载
         co = 0
         for i in blocks:
             if i["name"] == blockfile:
@@ -202,7 +205,7 @@ def __blockReader(blockurl,blocks) -> "bytes,str":
                 break
         if co==0:
             return None,"failed"
-    tar = tarfile.open(f"srcf/blocks/{blockfile}.block")
+    tar = tarfile.open(f"srcf/blocks/{blockfile}.block") #从block文件中取出引用文件
     for i in tar.getmembers():
         if i.name == filename:
             f=tar.extractfile(i)
