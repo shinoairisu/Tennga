@@ -5,7 +5,8 @@ if __name__ =="__main__":
     # tennga.add("http://www.baidu.com/xx.json")
     # tennga.add("http://www.baidu.com/xx2.json")
     # tennga.add("http://localhost:8000/test.json")
-    # tennga.add("http://localhost:8000/test.json")
+    tennga.add("http://localhost:8000/test.json")
+    tennga.update()
     f = tennga.listsrc()
     for i,j in enumerate(f):
         print(i,j)
@@ -13,6 +14,6 @@ if __name__ =="__main__":
     # print(result)
     # s=tennga.search("vv","2022/10/26")
     # print(s)
-    print(tennga.donwload("vv5"))
+    print(tennga.donwload("vv"))
 
     

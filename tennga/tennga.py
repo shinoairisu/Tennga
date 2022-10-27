@@ -140,16 +140,16 @@ def donwload(name, time=None, dcallback=None) -> str:
                 if time != None:
                     if "time" in z and time == z["time"] and z["name"] == name:
                         
-                        texts= __download(z,blocks,dcallback)
+                        texts= __download(z,j,blocks,dcallback)
                         return texts
                 else:
                     if z["name"] == name:
-                        texts= __download(z,blocks,dcallback)
+                        texts= __download(z,j,blocks,dcallback)
                         return texts
     return "failed"
 
-def __download(filedic,blocks=None,dcallback=None) -> str:
-    os.makedirs(f"srcf/{filedic['name']}", exist_ok=True)
+def __download(filedic,folder,blocks=None,dcallback=None) -> str:
+    os.makedirs(f"srcf/{folder}/{filedic['name']}", exist_ok=True)
     links = filedic['url']
     texts=""
     for i in links:
@@ -162,20 +162,20 @@ def __download(filedic,blocks=None,dcallback=None) -> str:
                     texts+=f"{filename},failed\n"
                     continue
             except:
-                if os.path.exists(f"srcf/{filedic['name']}/{filename}"):
+                if os.path.exists(f"srcf/{folder}/{filedic['name']}/{filename}"):
                     texts+=f"{filename},ok\n"
                     continue
             cont = res.content
             if dcallback:
                cont = dcallback(res,filedic) #返回处理后的文件
-            with open(f"srcf/{filedic['name']}/{filename}","wb") as f:
+            with open(f"srcf/{folder}/{filedic['name']}/{filename}","wb") as f:
                 f.write(cont)
                 texts+=f"{filename},ok\n"
         elif link[0:5] == "block":
             cont,res = __blockReader(link,blocks)
             _, filename = os.path.split(i)
             if res == "ok":
-                with open(f"srcf/{filedic['name']}/{filename}","wb") as f:
+                with open(f"srcf/{folder}/{filedic['name']}/{filename}","wb") as f:
                     f.write(cont)
                 texts+=f"{filename},ok\n"
             else:
