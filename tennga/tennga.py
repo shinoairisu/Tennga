@@ -170,6 +170,7 @@ def __download(filedic,blocks=None,dcallback=None) -> str:
                cont = dcallback(res,filedic) #返回处理后的文件
             with open(f"srcf/{filedic['name']}/{filename}","wb") as f:
                 f.write(cont)
+                texts+=f"{filename},ok\n"
         elif link[0:5] == "block":
             cont,res = __blockReader(link,blocks)
             _, filename = os.path.split(i)

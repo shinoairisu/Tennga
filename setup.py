@@ -5,7 +5,7 @@ with open("README.md", 'r', encoding="utf-8") as fh:
 
 setuptools.setup(
     name="tennga",  # 模块名称，也就是主文件夹名字
-    version="1.0.0",  # 当前版本
+    version="1.1.0",  # 当前版本
     author="肥希的肥猫",  # 作者
     author_email="281001460@qq.com",  # 作者邮箱
     description="一个实现简易,使用简易的源管理器",  # 模块简介
