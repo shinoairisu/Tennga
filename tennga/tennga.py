@@ -1,9 +1,12 @@
 import glob
 import json
+import logging
 import os
 import shutil
 import tarfile
 import requests
+
+#测试服务器 http://localhost:8000/xxx
 
 
 def init():
@@ -44,7 +47,7 @@ def add(url) -> str:
 
 def remove(url) -> str:
     """
-    url可以是链接，也可以是list返回的数字
+    删除url源
     删除源从src.json
     删除源文件从srcf/srcs
     """
@@ -52,15 +55,12 @@ def remove(url) -> str:
     with open("srcf/src.json", "r", encoding="utf-8") as f:
         srcs = json.loads(f.read())
     try:
-        if isinstance(url, str):
-            srcs.remove(url)
-        elif isinstance(url, int):
-            del srcs[url]
+        srcs.remove(url)
     except:
-        print("删除内容不存在...")
-        return
+        return False
     with open("srcf/src.json", "w", encoding="utf-8") as f:
         f.write(json.dumps(srcs))
+    return True
 
 
 def update() -> str:
@@ -90,12 +90,49 @@ def update() -> str:
     return result
 
 
-def search(name: str, time: str = None) -> list:
+def freeze(folder=None):
     """
-    name 是一个模糊查询
-    time: 年/月/日 -> 这是一个类似id的标记
-    list 返回所有name
-    返回空就是失败
+    v1.2.0版本以后新增
+    返回:  安装的所有内容
+    参数 : 所属文件夹,指的是源里面的虚文件夹，比如 目录1
+    """
+    files = []
+    #分为有folder与无folder
+    if folder:  #找出指定文件夹下内容
+        folders2 = next(os.walk(f"srcf/{folder}"))[1]
+        for j in folders2:
+            tempdic = {}
+            tempdic["name"] = j
+            tempdic["folder"] = folder
+            if len(glob.glob(f"srcf/{folder}/{j}/*.lock")) > 0:
+                filename = os.path.split(
+                    glob.glob(f"srcf/{folder}/{j}/*.lock")[0])[1].split(".")[0]
+                tempdic["uuid"] = filename
+            files.append(tempdic)
+    else:  #无folder就找出所有文件夹下内容
+        folders = next(os.walk("srcf"))[1]
+        folders.remove("blocks")
+        folders.remove("srcs")
+        for i in folders:
+            folders2 = next(os.walk(f"srcf/{i}"))[1]
+            for j in folders2:
+                tempdic = {}
+                tempdic["name"] = j
+                tempdic["folder"] = i
+                if len(glob.glob(f"srcf/{i}/{j}/*.lock")) > 0:
+                    filename = os.path.split(
+                        glob.glob(f"srcf/{i}/{j}/*.lock")[0])[1].split(".")[0]
+                    tempdic["uuid"] = filename
+                files.append(tempdic)
+    return files
+
+
+def find(file, uuid=None) -> list:
+    """
+    v1.2.0版本以后使用此替代search
+    返回：
+    file:所有文件
+    uuid:uuid数据是唯一的,替换了原来的时间
     """
     srcs = glob.glob("srcf/srcs/*.json")
     files = []
@@ -105,26 +142,24 @@ def search(name: str, time: str = None) -> list:
             jswen = json.loads(f.read())
             del jswen["blocks"]
         for j in jswen:
-            for z in jswen[j]:
-                if z["name"].find(name) > -1:
-                    files.append([z["name"], "0/0/0"])
-                if time != None:
-                    if "time" in z and time == z["time"]:
-                        files[-1][1] = z["time"]
-                    else:
-                        del files[-1]
+            for z in jswen[j]:  #分为 有uuid 以及 无 uuid
+                if uuid != None:
+                    if z["uuid"] == uuid and z["name"].find(file) > -1:
+                        files.append([j, z["name"], z["uuid"]])
                 else:
-                    if "time" in z:
-                        files[-1][1] = z["time"]
+                    if z["name"].find(file) > -1:
+                        files.append([j, z["name"], z["uuid"]])
     return files
 
 
-def donwload(name, time=None, dcallback=None) -> str:
+def install(folder, name, uuid=None):
     """
-    下载或更新
-    name 是绝对文件名,一个字不能差
-    dcallback  用于处理下载的半成品源,默认是直接保存content
-    返回失败
+    v1.2.0版本以后使用此替代download
+    返回：
+    folder:所属文件夹，不可忽略
+    file:所有文件，不可忽略
+    uuid:uuid数据是唯一的,替换了原来的时间,如果忽略则随意安装
+    同名库会互相替代。所以安装时注意uuid。
     """
     srcs = glob.glob("srcf/srcs/*.json")
     for i in srcs:
@@ -134,84 +169,133 @@ def donwload(name, time=None, dcallback=None) -> str:
             jswen = json.loads(f.read())
             blocks = jswen["blocks"] if "blocks" in jswen else None
             del jswen["blocks"]
-            
+
         for j in jswen:
-            for z in jswen[j]:
-                if time != None:
-                    if "time" in z and time == z["time"] and z["name"] == name:
-                        
-                        texts= __download(z,j,blocks,dcallback)
+            for z in jswen[j]:  #分为 有uuid 以及 无 uuid
+                if uuid != None:
+                    if j == folder and z["uuid"] == uuid and z["name"] == name:
+                        texts = __download(z, j, blocks)
+
                         return texts
                 else:
-                    if z["name"] == name:
-                        texts= __download(z,j,blocks,dcallback)
+                    if j == folder and z["name"] == name:
+                        texts = __download(z, j, blocks)
                         return texts
     return "failed"
 
-def __download(filedic,folder,blocks=None,dcallback=None) -> str:
+
+def uninstall(folder, name):
+    """
+    v1.2.0版本以后新增
+    返回：
+    folder:所属文件夹，不可忽略
+    file:所有文件，不可忽略
+    """
+    if os.path.exists(f"srcf/{folder}/{name}"):
+        shutil.rmtree(f"srcf/{folder}/{name}")
+        return True
+    else:
+        return False
+
+
+def getfile(folder, file):
+    """
+    v1.2.0版本以后新增
+    folder是虚文件夹，json里第二层的东西
+    返回：
+    完整目录。如果对应不存在，返回None
+    """
+    if os.path.exists(f"srcf/{folder}/{file}"):
+        return f"srcf/{folder}/{file}"
+    else:
+        return None
+
+
+def getfiles(folder):
+    """
+    v1.2.0版本以后新增
+    返回：
+    folder:所属虚文件夹，不可忽略
+    file:所有文件，不可忽略
+    返回：
+    list。如果对应不存在，返回空列表
+    """
+    folders = []
+    if os.path.exists(f"srcf/{folder}"):
+        folders2 = next(os.walk(f"srcf/{folder}"))[1]
+        for i in folders2:
+            folders.append(f"srcf/{folder}/{i}")
+    return folders
+
+
+def __download(filedic, folder, blocks=None) -> str:
     os.makedirs(f"srcf/{folder}/{filedic['name']}", exist_ok=True)
-    links = filedic['url']
-    texts=""
+    with open(f"srcf/{folder}/{filedic['name']}/{filedic['uuid']}.lock",
+              'w') as f:
+        f.write("lock")
+    links = filedic['urls']
+    texts = ""
     for i in links:
         link = i.strip()
-        if link[0:4] == "http": #如果是http链接就直接下载
+        if link[0:4] == "http":  #如果是http链接就直接下载
             _, filename = os.path.split(i)
             try:
                 res = requests.get(link)
                 if res.status_code != 200:
-                    texts+=f"{filename},failed\n"
+                    texts += f"{filename},failed\n"
                     continue
             except:
-                if os.path.exists(f"srcf/{folder}/{filedic['name']}/{filename}"):#如果下载出错就查看本地有没有
-                    texts+=f"{filename},ok\n"
+                if os.path.exists(f"srcf/{folder}/{filedic['name']}/{filename}"
+                                  ):  #如果下载出错就查看本地有没有
+                    texts += f"{filename},ok\n"
                     continue
                 else:
-                    texts+=f"{filename},failed\n"
+                    texts += f"{filename},failed\n"
                     continue
             cont = res.content
-            if dcallback:
-               cont = dcallback(res,filedic) #返回处理后的文件
-            with open(f"srcf/{folder}/{filedic['name']}/{filename}","wb") as f:
+            with open(f"srcf/{folder}/{filedic['name']}/{filename}",
+                      "wb") as f:
                 f.write(cont)
-                texts+=f"{filename},ok\n"
+                texts += f"{filename},ok\n"
         elif link[0:5] == "block":
-            cont,res = __blockReader(link,blocks)
+            cont, res = __blockReader(link, blocks)
             _, filename = os.path.split(i)
             if res == "ok":
-                with open(f"srcf/{folder}/{filedic['name']}/{filename}","wb") as f:
+                with open(f"srcf/{folder}/{filedic['name']}/{filename}",
+                          "wb") as f:
                     f.write(cont)
-                texts+=f"{filename},ok\n"
+                texts += f"{filename},ok\n"
             else:
-                texts+=f"{filename},failed\n"
+                texts += f"{filename},failed\n"
     return texts
 
 
-def __blockReader(blockurl,blocks) -> "bytes,str":
-    blockfile = __getmidstring(blockurl,"//","/")
+def __blockReader(blockurl, blocks) -> "bytes,str":
+    blockfile = __getmidstring(blockurl, "//", "/")
     _, filename = os.path.split(blockurl)
-    if not os.path.exists(f"srcf/blocks/{blockfile}.block"): #不存在就下载
+    if not os.path.exists(f"srcf/blocks/{blockfile}.block"):  #不存在就下载
         co = 0
         for i in blocks:
             if i["name"] == blockfile:
                 try:
                     cont = requests.get(i["url"])
                     if cont.status_code != 200:
-                        return None,"failed"
+                        return None, "failed"
                 except:
-                    return None,"failed"
-                with open(f"srcf/blocks/{blockfile}.block","wb") as f:
+                    return None, "failed"
+                with open(f"srcf/blocks/{blockfile}.block", "wb") as f:
                     f.write(cont.content)
-                co+=1
+                co += 1
                 break
-        if co==0:
-            return None,"failed"
-    tar = tarfile.open(f"srcf/blocks/{blockfile}.block") #从block文件中取出引用文件
+        if co == 0:
+            return None, "failed"
+    tar = tarfile.open(f"srcf/blocks/{blockfile}.block")  #从block文件中取出引用文件
     for i in tar.getmembers():
         if i.name == filename:
-            f=tar.extractfile(i)
-            content=f.read()
-            return content,"ok"
-    return None,"failed"
+            f = tar.extractfile(i)
+            content = f.read()
+            return content, "ok"
+    return None, "failed"
 
 
 def __getmidstring(html, start_str, end):
@@ -221,3 +305,5 @@ def __getmidstring(html, start_str, end):
         end = html.find(end, start)
         if end >= 0:
             return html[start:end].strip()
+
+

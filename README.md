@@ -10,45 +10,35 @@ tennga.listsrc() #打印所有源
 tennga.add(url) #添加源
 tennga.remove(url或者数字) #移除list出来的源
 tennga.update() #更新与使用源 下载所有源文件到srcs下面
-tennga.search(文件名和模糊搜索) #从srcs的源中查找文件
-tennga.donwload(文件名,d回调函数=None) #从源搜索并下载文件，携带一个aop。自动将文件下载到srcf/内容1中。
-#注意即使删除了源，srcf下的文件不会被自动移除
+tennga.find(文件夹，文件名，uuid) #从srcs的源中查找文件
+tennga.install(文件夹，文件名) #从源搜索并下载文件，携带一个aop。自动将文件下载到srcf/内容1中。
+tennga.uninstall(文件夹，文件名)
+tennga.freeze(文件夹) #freeze会返回已经安装的所有文件信息
+tennga.getfile(文件夹，文件名) #获得文件目录
+tennga.getfiles(文件夹) #获得虚文件下所有文件目录
 ```
 
-## d回调函数
 
-```python
-def callback(req :requests,param :dict) -> object:
-    """
-    用于处理下载的半成品源，默认是直接保存content。
-    如果下载失败，则检查是否有离线文件。如果有就将就着，没有就报错。
-    req: requests对象
-    param: 源文件对应的所有参数，比如name，url以及其他
-    """
-    pass
-```
 
 ## 源格式 utf-8 json
 
 ```json
 {
-    "内容1":[
+    "目录1":[
         {"name":"文件1",
-         "url":["http://www.baidu.com",
+         "urls":["http://www.baidu.com",
                 "block://块名1/文件名"
                ]
-         "xpath":"xxxxx",
-         "time" : "2022/10/26"
+         "uuid" : "f0645603-2fc6-4007-82e6-b731b8920b5b"
         },
-        ....
     ],
-    "内容2":[
+    "目录2":[
         
     ],
     "blocks":[
         {
             "name":"块名1",
-            "url":"xxx",
+            "url":"http://www.baidu.com/xx.block",
         }
     ]
 }
@@ -75,3 +65,34 @@ block链接：block://block名/文件名.扩展名
 其中，程序会先从blocks目录中查找block块，如果没有，会尝试从源中下载对应block。然后再从block中获取文件。通常用于应对过于散碎的批量文件，比如一个源中全是图片。
 
 block是固定的。也就是说同名block只能上传一次。下次如果要更改请制作新的block。因为程序会主动检查是否存在对应block。如果压缩错了重新修改上传了，也不会被重新下载。因此建议如果修改，请使用新的block。
+
+## 源制作器
+
+```python
+from tennga import srcmake
+srcmake.openSourceFile(name)
+srcmake.addFile(srcfile, floder, filename)
+srcmake.addLink(srcfile, floder, filename, link)
+srcmake.addKV(srcfile, floder, filename, key, value)
+srcmake.addBlock(srcfile, blockname)
+srcmake.addBlockLink(srcfile, blockname, link)
+srcmake.save(name,srcfile)
+```
+
+
+
+## 预计功能（v2.0.0）
+
+提供一个源管理器和制作器的UI
+
+使用：
+
+python -m tennga
+
+可以导出两个文件:
+
+tennga.html #这是tennga管理器页面，放在static目录下即可
+
+tennga.py #这是flask的蓝图，可以直接注册使用
+
+可以使用iframe导入tennga集成到flask软件中使用。
